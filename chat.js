@@ -1,76 +1,25 @@
 /**
- * AI Chat Assistant Engine (ChatGPT Clone)
- * Built for Jason Gunawan's Portfolio
+ * Monograph Editorial AI Chat Assistant Client Engine
+ * Fully featured ChatGPT-style UI with local thread history,
+ * Markdown parsing, streaming link protection, and source extraction.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
   const DEFAULT_KEY = ''; // Kept empty for security to prevent committing keys to git
   const DEFAULT_MODEL = 'google/gemma-4-31b-it:free';
 
-  // Initialize credentials in localStorage if DEFAULT_KEY is defined
-  if (!localStorage.getItem('openrouter_api_key') && DEFAULT_KEY) {
-    localStorage.setItem('openrouter_api_key', DEFAULT_KEY);
-  }
-  
-  const savedModel = localStorage.getItem('openrouter_model');
-  if (!savedModel || savedModel === 'sourceful/riverflow-v2.5-pro:free') {
-    localStorage.setItem('openrouter_model', DEFAULT_MODEL);
-  }
-
-  // Core State
+  // State Management
   let state = {
-    apiKey: localStorage.getItem('openrouter_api_key'),
-    model: localStorage.getItem('openrouter_model'),
+    apiKey: localStorage.getItem('openrouter_api_key') || '',
+    model: localStorage.getItem('openrouter_model') || DEFAULT_MODEL,
     threads: JSON.parse(localStorage.getItem('chat_history_threads') || '[]'),
     activeThreadId: null,
     isGenerating: false,
-    currentReader: null, // Keep reference to abort stream if needed
-    useBackend: false // Proxy toggle for FastAPI server proxy vs direct browser mode
+    currentReader: null,
+    useBackend: false
   };
 
-  async function checkBackend() {
-    try {
-      const response = await fetch('/api/config');
-      if (response.ok) {
-        const config = await response.json();
-        
-        // Only use the backend server proxy if it has the API key pre-configured
-        if (config.has_api_key) {
-          state.useBackend = true;
-          state.model = config.model;
-          currentModelBadge.textContent = config.model;
-          
-          // Show status update on settings navigation
-          const sidebarSettingsBtn = document.getElementById('btn-settings');
-          if (sidebarSettingsBtn) {
-            sidebarSettingsBtn.innerHTML = `
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
-                <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
-                <line x1="6" y1="6" x2="6.01" y2="6"></line>
-                <line x1="6" y1="18" x2="6.01" y2="18"></line>
-              </svg>
-              <span class="label-caps">Server Active</span>
-            `;
-          }
-          
-          // Clear direct browser warnings if API is proxied
-          const warningMsg = document.getElementById('key-required-msg');
-          if (warningMsg) warningMsg.remove();
-        } else {
-          // If server lacks the key, fall back to browser-direct mode
-          state.useBackend = false;
-        }
-      }
-    } catch (e) {
-      state.useBackend = false;
-    }
-  }
-
-  // Check server status
-  checkBackend();
-
-  // --- UI ELEMENTS ---
+  // --- UI BINDINGS ---
   const sidebar = document.getElementById('sidebar');
   const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
   const btnCloseSidebarMobile = document.getElementById('btn-close-sidebar-mobile');
@@ -99,18 +48,51 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnToggleKeyVisibility = document.getElementById('btn-toggle-key-visibility');
   const settingsModel = document.getElementById('settings-model');
 
+  // Check Backend Server Configuration Status
+  async function checkBackend() {
+    try {
+      const response = await fetch('/api/config');
+      if (response.ok) {
+        const config = await response.json();
+        if (config.has_api_key) {
+          state.useBackend = true;
+          state.model = config.model;
+          currentModelBadge.textContent = config.model;
+          
+          // Show visual indicator that server credentials are used
+          btnSettings.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+              <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+              <line x1="6" y1="6" x2="6.01" y2="6"></line>
+              <line x1="6" y1="18" x2="6.01" y2="18"></line>
+            </svg>
+            Server Active
+          `;
+          
+          const warningMsg = document.getElementById('key-required-msg');
+          if (warningMsg) warningMsg.remove();
+        } else {
+          state.useBackend = false;
+        }
+      }
+    } catch (e) {
+      state.useBackend = false;
+    }
+  }
+
+  checkBackend();
+
   // --- THEME INITIALIZATION ---
   const savedTheme = localStorage.getItem('chat_theme') || 'light';
   document.documentElement.setAttribute('data-theme', savedTheme);
   updateThemeButtonUI(savedTheme);
 
-  // Initialize model badge text
+  // Initialize Badge and archives list
   currentModelBadge.textContent = state.model;
-
-  // Render initial threads
   renderThreadsList();
 
-  // Load last active thread or start a new one
+  // Load last active conversation or launch a new workspace
   const lastActiveId = localStorage.getItem('last_active_thread_id');
   if (lastActiveId && state.threads.some(t => t.id === lastActiveId)) {
     loadThread(lastActiveId);
@@ -118,20 +100,19 @@ document.addEventListener('DOMContentLoaded', () => {
     initNewChat();
   }
 
-  // Check if API Key exists, if not, open settings modal automatically
-  if (!localStorage.getItem('openrouter_api_key')) {
+  // API Key validation warning trigger
+  if (!state.apiKey && !state.useBackend) {
     setTimeout(() => {
       openSettings();
-      // Show helper message in the settings modal
       const modalMsg = document.createElement('p');
       modalMsg.id = 'key-required-msg';
-      modalMsg.style.color = '#d32f2f';
+      modalMsg.style.color = 'hsl(0, 65%, 50%)';
       modalMsg.style.fontSize = '12px';
-      modalMsg.style.fontWeight = '600';
+      modalMsg.style.fontWeight = '700';
       modalMsg.style.marginTop = '-12px';
       modalMsg.style.marginBottom = '16px';
       modalMsg.style.fontFamily = 'Hanken Grotesk, sans-serif';
-      modalMsg.textContent = 'OPENROUTER API KEY REQUIRED TO INITIATE CHAT.';
+      modalMsg.textContent = 'OPENROUTER API KEY REQUIRED TO INITIATE CONVERSATION.';
       
       const keyGroup = settingsModal.querySelector('.settings-group');
       if (keyGroup && !document.getElementById('key-required-msg')) {
@@ -140,9 +121,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 500);
   }
 
-  // --- EVENT LISTENERS ---
+  // --- INTERACTION CONTROLS ---
 
-  // Sidebar Controls
   btnToggleSidebar.addEventListener('click', () => {
     sidebar.classList.toggle('hidden');
     sidebar.classList.toggle('active');
@@ -157,7 +137,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btnNewChat.addEventListener('click', () => {
     initNewChat();
-    // Close sidebar on mobile after clicking new chat
     if (window.innerWidth <= 992) {
       sidebar.classList.remove('active');
       sidebar.classList.add('hidden');
@@ -166,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btnClearChat.addEventListener('click', () => {
     if (state.activeThreadId) {
-      if (confirm('Are you sure you want to reset this chat thread? This clears all messages.')) {
+      if (confirm('Clear all conversation messages in this archive?')) {
         const thread = state.threads.find(t => t.id === state.activeThreadId);
         if (thread) {
           thread.messages = [];
@@ -179,7 +158,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Theme Toggle
   btnThemeToggle.addEventListener('click', () => {
     const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
     const newTheme = currentTheme === 'light' ? 'dark' : 'light';
@@ -188,22 +166,21 @@ document.addEventListener('DOMContentLoaded', () => {
     updateThemeButtonUI(newTheme);
   });
 
-  // Settings Modal Controls
-  const openSettings = () => {
+  function openSettings() {
     settingsApiKey.value = state.apiKey;
     settingsModel.value = state.model;
     settingsApiKey.type = 'password';
     btnToggleKeyVisibility.textContent = 'Show';
     settingsModal.classList.add('active');
     settingsModal.setAttribute('aria-hidden', 'false');
-  };
+  }
 
   btnSettings.addEventListener('click', openSettings);
 
-  const closeSettings = () => {
+  function closeSettings() {
     settingsModal.classList.remove('active');
     settingsModal.setAttribute('aria-hidden', 'true');
-  };
+  }
 
   btnCloseSettings.addEventListener('click', closeSettings);
   
@@ -225,8 +202,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const newKey = settingsApiKey.value.trim();
     const newModel = settingsModel.value;
     
-    if (!newKey) {
-      alert('API key cannot be empty. Please enter a valid OpenRouter key.');
+    if (!newKey && !state.useBackend) {
+      alert('API key cannot be empty. Please enter an OpenRouter key.');
       return;
     }
 
@@ -237,26 +214,23 @@ document.addEventListener('DOMContentLoaded', () => {
     
     currentModelBadge.textContent = newModel;
     
-    // Remove warning message if it exists
     const warningMsg = document.getElementById('key-required-msg');
     if (warningMsg) warningMsg.remove();
     
     closeSettings();
-    
-    // Notify user of update
-    showTemporarySystemAlert('System settings committed successfully.');
+    showTemporarySystemAlert('System settings committed.');
   });
 
   btnResetSettings.addEventListener('click', () => {
-    if (confirm('Are you sure you want to restore default credentials?')) {
+    if (confirm('Restore default model config?')) {
       settingsApiKey.value = DEFAULT_KEY;
       settingsModel.value = DEFAULT_MODEL;
     }
   });
 
-  // Composer Input Controls
   composerInput.addEventListener('input', () => {
-    autoGrowTextarea(composerInput);
+    composerInput.style.height = 'auto';
+    composerInput.style.height = (composerInput.scrollHeight) + 'px';
   });
 
   composerInput.addEventListener('keydown', (e) => {
@@ -270,16 +244,15 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     if (state.isGenerating) return;
 
-    const messageText = composerInput.value.trim();
-    if (!messageText) return;
+    const text = composerInput.value.trim();
+    if (!text) return;
 
     composerInput.value = '';
-    composerInput.style.height = 'auto'; // Reset height
+    composerInput.style.height = 'auto';
     
-    handleUserSubmission(messageText);
+    handleUserSubmission(text);
   });
 
-  // Suggestion Cards Clicking
   document.querySelectorAll('.suggestion-card').forEach(card => {
     card.addEventListener('click', () => {
       const prompt = card.getAttribute('data-prompt');
@@ -289,20 +262,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Mock Toolbar buttons feedback
   btnAttach.addEventListener('click', () => {
-    alert('File attachments are visual design references. File parsing is simulated in this sandbox environment.');
+    alert('Local file attachments are visual references. File parsing is simulated.');
   });
 
   btnWebSearch.addEventListener('click', () => {
     btnWebSearch.classList.toggle('active');
-    const isActive = btnWebSearch.classList.contains('active');
-    btnWebSearch.style.color = isActive ? 'var(--primary)' : '';
-    btnWebSearch.style.backgroundColor = isActive ? 'var(--surface-container-high)' : '';
-    showTemporarySystemAlert(isActive ? 'Web search tool enabled.' : 'Web search tool disabled.');
+    const active = btnWebSearch.classList.contains('active');
+    showTemporarySystemAlert(active ? 'Web search enabled.' : 'Web search disabled.');
   });
 
-  // --- CORE UTILITY FUNCTIONS ---
+  // --- STATE PERSISTENCE HELPERS ---
 
   function updateThemeButtonUI(theme) {
     if (theme === 'dark') {
@@ -326,22 +296,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function autoGrowTextarea(element) {
-    element.style.height = 'auto';
-    element.style.height = (element.scrollHeight) + 'px';
-  }
-
   function showTemporarySystemAlert(text) {
     const alertEl = document.createElement('div');
     alertEl.style.position = 'fixed';
     alertEl.style.bottom = '100px';
     alertEl.style.left = '50%';
     alertEl.style.transform = 'translateX(-50%)';
-    alertEl.style.backgroundColor = 'var(--inverse-surface)';
-    alertEl.style.color = 'var(--inverse-on-surface)';
+    alertEl.style.backgroundColor = 'var(--primary)';
+    alertEl.style.color = 'var(--on-primary)';
     alertEl.style.padding = '8px 16px';
-    alertEl.style.fontSize = '12px';
-    alertEl.style.fontWeight = '600';
+    alertEl.style.fontSize = '11px';
+    alertEl.style.fontWeight = '700';
     alertEl.style.fontFamily = 'Hanken Grotesk, sans-serif';
     alertEl.style.zIndex = '999';
     alertEl.style.border = '1px solid var(--outline)';
@@ -350,28 +315,26 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.appendChild(alertEl);
     setTimeout(() => {
       alertEl.style.opacity = '0';
-      alertEl.style.transition = 'opacity 0.5s ease';
-      setTimeout(() => alertEl.remove(), 500);
-    }, 2000);
+      alertEl.style.transition = 'opacity 0.4s ease';
+      setTimeout(() => alertEl.remove(), 400);
+    }, 1500);
   }
 
-  // --- CONVERSATION ENGINE ---
-
   function initNewChat() {
-    const newId = 'thread_' + Date.now();
+    const id = 'thread_' + Date.now();
     const newThread = {
-      id: newId,
+      id: id,
       title: 'New Conversation',
       model: state.model,
       messages: []
     };
     
     state.threads.unshift(newThread);
-    state.activeThreadId = newId;
+    state.activeThreadId = id;
     
     saveThreadsToStorage();
     renderThreadsList();
-    loadThread(newId);
+    loadThread(id);
   }
 
   function loadThread(id) {
@@ -381,7 +344,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const thread = state.threads.find(t => t.id === id);
     if (!thread) return;
 
-    // Update active class in sidebar history
     document.querySelectorAll('.history-item-wrap').forEach(el => {
       if (el.getAttribute('data-id') === id) {
         el.classList.add('active');
@@ -390,10 +352,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Clear feed
     chatMessages.innerHTML = '';
     
-    // Toggle Empty State view
     if (thread.messages.length === 0) {
       emptyState.style.display = 'flex';
       btnClearChat.style.display = 'none';
@@ -401,20 +361,17 @@ document.addEventListener('DOMContentLoaded', () => {
       emptyState.style.display = 'none';
       btnClearChat.style.display = 'flex';
       
-      // Render existing messages
       thread.messages.forEach(msg => {
         appendMessageUI(msg.role, msg.content, msg.timestamp);
       });
-      
-      // Scroll to bottom
-      scrollToBottom();
+      chatMessages.scrollTop = chatMessages.scrollHeight;
     }
   }
 
   function deleteThread(id, event) {
     if (event) event.stopPropagation();
     
-    if (confirm('Delete this conversation history?')) {
+    if (confirm('Delete this conversation history thread?')) {
       const index = state.threads.findIndex(t => t.id === id);
       if (index !== -1) {
         state.threads.splice(index, 1);
@@ -441,7 +398,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (state.threads.length === 0) {
       const emptyLi = document.createElement('li');
-      emptyLi.className = 'metadata';
+      emptyLi.className = 'label-caps';
       emptyLi.style.padding = '0 20px';
       emptyLi.style.color = 'var(--secondary)';
       emptyLi.textContent = 'No archives found.';
@@ -462,7 +419,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const btnDelete = document.createElement('button');
       btnDelete.className = 'btn-history-delete';
-      btnDelete.ariaLabel = 'Delete history';
+      btnDelete.ariaLabel = 'Delete thread';
       btnDelete.innerHTML = `
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="3 6 5 6 21 6"></polyline>
@@ -503,11 +460,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return row;
   }
 
-  function scrollToBottom() {
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-  }
-
-  // --- MARKDOWN COMPILER ---
+  // --- MARKDOWN ENGINE ---
 
   function escapeHTML(str) {
     return str
@@ -522,13 +475,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const lines = block.trim().split('\n');
     if (lines.length < 2) return null;
     
-    // Check if second line is a header separator: contains only |, -, :, and spaces
     const sepLine = lines[1].trim();
-    if (!/^\|?\s*[:\-]+\s*\|[\s:\-\|]*$/.test(sepLine)) {
-      return null;
-    }
+    if (!/^\|?\s*[:\-]+\s*\|[\s:\-\|]*$/.test(sepLine)) return null;
     
-    // Parse alignment from separator line
     const alignMatches = sepLine.split('|').map(col => {
       const trimmed = col.trim();
       if (!trimmed) return null;
@@ -539,26 +488,23 @@ document.addEventListener('DOMContentLoaded', () => {
       return 'left';
     }).filter(x => x !== null);
     
-    let tableHtml = '<table><thead>';
+    let tableHtml = '<table><thead><tr>';
     
-    // Parse header line (lines[0])
     const headers = lines[0].split('|').map(c => c.trim()).filter((c, i, a) => {
       if (i === 0 && c === '') return false;
       if (i === a.length - 1 && c === '') return false;
       return true;
     });
     
-    tableHtml += '<tr>';
     headers.forEach((h, idx) => {
       const align = alignMatches[idx] || 'left';
       tableHtml += `<th style="text-align: ${align}">${h}</th>`;
     });
     tableHtml += '</tr></thead><tbody>';
     
-    // Parse data lines (lines[2] onwards)
     for (let i = 2; i < lines.length; i++) {
       const line = lines[i].trim();
-      if (!line) continue; // Skip empty rows
+      if (!line) continue;
       
       const cells = line.split('|').map(c => c.trim()).filter((c, idx, a) => {
         if (idx === 0 && c === '') return false;
@@ -571,7 +517,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const align = alignMatches[idx] || 'left';
         tableHtml += `<td style="text-align: ${align}">${cell}</td>`;
       });
-      // Fill in missing cells if row has fewer cells than headers
       if (cells.length < headers.length) {
         for (let k = cells.length; k < headers.length; k++) {
           const align = alignMatches[k] || 'left';
@@ -591,14 +536,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 1. Temporary placeholder for code blocks to prevent nested parsing
     const codeBlocks = [];
-    
-    // Match code blocks (with or without language)
     html = html.replace(/```(\w*)\n([\s\S]*?)(```|$)/g, (match, lang, code) => {
       const index = codeBlocks.length;
       const displayLang = (lang || 'code').toUpperCase();
       const escapedCode = escapeHTML(code.trim());
       
-      // Store complete custom block layout
       codeBlocks.push(`
         <div class="code-block-wrapper">
           <div class="code-block-header">
@@ -628,7 +570,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     
-    // Scan for streaming incomplete links [text](url
+    // Scan for streaming incomplete links [text](url...
     const incompleteLinkRegex = /\[([^\]]+)\]\((https?:\/\/[^)\s]*)$/g;
     let incMatch;
     incompleteLinkRegex.lastIndex = 0;
@@ -708,11 +650,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // 9. Links [text](url) (Complete)
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, text, url) => {
       const cleanText = text.trim();
-      // If the link text is a number, format it as a normal inline bracketed link: [1]
       if (/^\d+$/.test(cleanText)) {
         return `<a href="${url}" target="_blank" rel="noopener noreferrer">[${cleanText}]</a>`;
       }
-      // If it already has brackets like [1], preserve it
       if (/^\[\d+\]$/.test(cleanText)) {
         return `<a href="${url}" target="_blank" rel="noopener noreferrer">${cleanText}</a>`;
       }
@@ -720,7 +660,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // 9.5 Handle incomplete markdown links during streaming to prevent raw URL exposure
-    // e.g. [text](https://... (without closing parenthesis)
     html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]*)$/g, (match, text, url) => {
       const cleanText = text.trim();
       if (/^\d+$/.test(cleanText)) {
@@ -756,7 +695,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const trimmed = block.trim();
       if (!trimmed) return '';
       
-      // If it contains a code block placeholder or block tags, don't wrap in <p>
       if (trimmed.startsWith('__CODE_BLOCK_PLACEHOLDER_') || 
           trimmed.startsWith('<ul>') || 
           trimmed.startsWith('<ol>') || 
@@ -768,11 +706,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return trimmed;
       }
       
-      // Check for table block
       const tableHtml = parseTableBlock(trimmed);
-      if (tableHtml) {
-        return tableHtml;
-      }
+      if (tableHtml) return tableHtml;
       
       return `<p>${trimmed.replace(/\n/g, '<br>')}</p>`;
     }).join('');
@@ -785,22 +720,18 @@ document.addEventListener('DOMContentLoaded', () => {
     return html + sourcesHtml;
   }
 
-  // --- API CONNECTION (SSE STREAMING) ---
+  // --- API SSE STREAMING HANDLER ---
 
   async function handleUserSubmission(messageText) {
     if (state.isGenerating) return;
 
-    // Create timestamp
     const now = new Date();
     const timestamp = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    // Update active thread state
     const thread = state.threads.find(t => t.id === state.activeThreadId);
     if (!thread) return;
 
-    // Auto update thread title if it's the first message
     if (thread.messages.length === 0) {
-      // Set title as the first 30 chars of prompt
       thread.title = messageText.length > 30 ? messageText.substring(0, 30) + '...' : messageText;
     }
 
@@ -813,16 +744,13 @@ document.addEventListener('DOMContentLoaded', () => {
     saveThreadsToStorage();
     renderThreadsList();
 
-    // Render user card in feed
     appendMessageUI('user', messageText, timestamp);
-    scrollToBottom();
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 
-    // Lock UI input
     state.isGenerating = true;
     btnSubmitMessage.disabled = true;
     composerInput.placeholder = 'Generating response...';
 
-    // Add assistant row with temporary loading animation
     const assistantRow = document.createElement('div');
     assistantRow.className = 'message-row assistant';
     assistantRow.innerHTML = `
@@ -843,23 +771,19 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `;
     chatMessages.appendChild(assistantRow);
-    scrollToBottom();
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 
     const assistantTextContainer = assistantRow.querySelector('.message-text');
     const assistantTimestampEl = assistantRow.querySelector('.assistant-timestamp');
 
-    // Build payload messages history (up to last 15 messages for context limit)
     const historyLimit = 15;
     const historyMessages = thread.messages
       .slice(-historyLimit)
       .map(m => ({ role: m.role, content: m.content }));
 
-    // Execute streaming completion
     try {
-      // Append web search context if the toggle is enabled
       const searchActive = btnWebSearch.classList.contains('active');
       if (searchActive) {
-        // Simulation of web search contextual lookup addition
         const lastMsg = historyMessages[historyMessages.length - 1];
         lastMsg.content = `[Web Search Context: Simulated active search queries completed.]\n\n${lastMsg.content}`;
       }
@@ -868,12 +792,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (state.useBackend) {
         response = await fetch('/api/chat', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            messages: historyMessages
-          })
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: historyMessages })
         });
       } else {
         response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -897,7 +817,6 @@ document.addEventListener('DOMContentLoaded', () => {
         throw new Error(errJson.error?.message || `HTTP Error ${response.status}`);
       }
 
-      // Read SSE stream
       const reader = response.body.getReader();
       state.currentReader = reader;
       const decoder = new TextDecoder('utf-8');
@@ -905,7 +824,6 @@ document.addEventListener('DOMContentLoaded', () => {
       let assistantResponseText = '';
       let isFirstChunk = true;
 
-      // Stream parsing loop
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -926,7 +844,6 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (token) {
               if (isFirstChunk) {
-                // Clear loading typing dot indicator
                 assistantTextContainer.innerHTML = '';
                 assistantTextContainer.classList.add('streaming-cursor');
                 assistantTimestampEl.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -934,20 +851,17 @@ document.addEventListener('DOMContentLoaded', () => {
               }
               
               assistantResponseText += token;
-              // Render partial markdown safely
               assistantTextContainer.innerHTML = renderMarkdown(assistantResponseText);
-              scrollToBottom();
+              chatMessages.scrollTop = chatMessages.scrollHeight;
             }
           } catch (e) {
-            // Silence JSON parse errors of incomplete SSE chunks
+            // Ignore stream fragment parsing errors
           }
         }
       }
 
-      // Stream successfully completed
       assistantTextContainer.classList.remove('streaming-cursor');
       
-      // Save assistant message to thread
       const finalTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       thread.messages.push({
         role: 'assistant',
@@ -958,33 +872,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     } catch (error) {
       console.error(error);
-      
-      // Render clean, visual error notification inside the conversation card
       assistantTextContainer.innerHTML = `
-        <div style="border: 1px solid #d32f2f; background-color: rgba(211, 47, 47, 0.05); padding: 16px; margin: 8px 0;">
-          <h4 class="label-caps" style="color: #d32f2f; margin-bottom: 8px; font-weight: 800;">System Connection Failure</h4>
+        <div style="border: 1px solid hsl(0, 65%, 50%); background-color: hsla(0, 65%, 50%, 0.05); padding: 16px; margin: 8px 0;">
+          <h4 class="label-caps" style="color: hsl(0, 65%, 50%); margin-bottom: 8px; font-weight: 800;">System Connection Failure</h4>
           <p class="body-md" style="font-size: 13px; margin: 0; color: var(--on-surface);">
             Failed to stream completion token channels. Details: ${error.message}
           </p>
-          <p class="metadata" style="margin-top: 12px; font-size: 11px;">
-            Please check your network connectivity or update your OpenRouter API key credentials in the <span style="text-decoration: underline; cursor: pointer;" onclick="document.getElementById('btn-settings').click()">System Settings</span>.
+          <p class="label-caps" style="margin-top: 12px; font-size: 10px; cursor: pointer; text-decoration: underline;" onclick="document.getElementById('btn-settings').click()">
+            Configure System Settings
           </p>
         </div>
       `;
       assistantTimestampEl.textContent = '--:--';
     } finally {
-      // Release generation locks
       state.isGenerating = false;
       state.currentReader = null;
       btnSubmitMessage.disabled = false;
       composerInput.placeholder = 'Message Assistant Engine...';
-      scrollToBottom();
+      chatMessages.scrollTop = chatMessages.scrollHeight;
     }
   }
 });
 
-// --- GLOBAL CODE BLOCK ACTIONS ---
-// Expose functions globally for dynamic onclick handlers in code headers
+// --- GLOBAL UTILITIES ---
 
 window.copyCodeContent = function(button) {
   const codeBlock = button.closest('.code-block-wrapper').querySelector('code');
@@ -1002,6 +912,6 @@ window.copyCodeContent = function(button) {
       button.style.color = '';
     }, 2000);
   }).catch(err => {
-    console.error('Failed to copy code text: ', err);
+    console.error('Failed to copy code: ', err);
   });
 };

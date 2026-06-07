@@ -1,8 +1,26 @@
 from pydantic import BaseModel, Field
+from typing import List, Literal
 
 class MessageItem(BaseModel):
-    role: str = Field(..., description="Role of the sender: 'user' or 'assistant'")
-    content: str = Field(..., description="Text content of the message")
+    """
+    Represents an individual message inside a chat history thread.
+    Conforms to the OpenRouter/OpenAI message specification.
+    """
+    role: Literal["user", "assistant", "system"] = Field(
+        ..., 
+        description="Role of the message author: 'user', 'assistant', or 'system'"
+    )
+    content: str = Field(
+        ..., 
+        min_length=1, 
+        description="Text content of the message segment"
+    )
 
 class ChatRequest(BaseModel):
-    messages: list[MessageItem] = Field(..., description="Full chat conversation history")
+    """
+    Payload schema for initiating chat completions.
+    """
+    messages: List[MessageItem] = Field(
+        ..., 
+        description="Chronological thread message sequence representing conversation context"
+    )

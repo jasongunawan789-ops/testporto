@@ -3,26 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Assistant — Jason Gunawan</title>
-  <meta name="description" content="Custom-engineered AI chat assistant client powered by OpenRouter. Direct streaming completion interface.">
-  <link rel="icon" type="image/png" href="assets/images/project-2.png">
-  <link rel="stylesheet" href="index.css">
+  <title>Editorial AI Assistant — Chat Engine</title>
+  <meta name="description" content="A premium conversational chat interface featuring LLM streaming, markdown rendering, and persistent threads history.">
   <link rel="stylesheet" href="chat.css">
 </head>
 <body class="chat-body">
 
   <div class="chat-container">
+    
     <!-- Collapsible Sidebar -->
-    <aside class="sidebar" id="sidebar" aria-label="Chat History Sidebar">
+    <aside class="sidebar" id="sidebar" aria-label="Sidebar Archives">
       <div class="sidebar-header">
-        <button class="btn-sidebar-new" id="btn-new-chat" aria-label="Start a New Chat">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button class="btn-sidebar-new" id="btn-new-chat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
-          <span class="label-caps">New Chat</span>
+          New Conversation
         </button>
-        <button class="sidebar-close-mobile" id="btn-close-sidebar-mobile" aria-label="Close Sidebar">
+        <button class="sidebar-close-mobile" id="btn-close-sidebar-mobile" aria-label="Close sidebar">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -30,51 +29,43 @@
         </button>
       </div>
 
-      <!-- Scrollable History -->
-      <nav class="history-list" aria-label="Recent Conversations">
-        <div class="history-section-title label-caps">Conversations</div>
-        <ul id="chat-history-list" class="history-ul">
-          <!-- Dynamically populated -->
+      <!-- Thread Archives list -->
+      <nav class="history-list">
+        <h3 class="history-section-title">Conversations</h3>
+        <ul class="history-ul" id="chat-history-list">
+          <!-- Populated dynamically via JS -->
         </ul>
       </nav>
 
-      <!-- Sidebar Footer -->
+      <!-- Sidebar footer controllers -->
       <div class="sidebar-footer">
-        <button class="sidebar-action-btn" id="btn-settings" aria-label="Open Settings">
+        <button class="sidebar-action-btn" id="btn-settings">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"></circle>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
           </svg>
-          <span class="label-caps">Settings</span>
+          System Settings
         </button>
-        <button class="sidebar-action-btn" id="btn-theme-toggle" aria-label="Toggle Theme Mode">
-          <svg class="sun-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="5"></circle>
-            <line x1="12" y1="1" x2="12" y2="3"></line>
-            <line x1="12" y1="21" x2="12" y2="23"></line>
-            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-            <line x1="1" y1="12" x2="3" y2="12"></line>
-            <line x1="21" y1="12" x2="23" y2="12"></line>
-            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-          </svg>
-          <span class="label-caps theme-btn-text">Dark Mode</span>
-        </button>
-        <a href="index.html" class="sidebar-action-btn" style="text-decoration: none;" aria-label="Return to Portfolio Homepage">
+        <button class="sidebar-action-btn" id="btn-theme-toggle">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="19" y1="12" x2="5" y2="12"></line>
-            <polyline points="12 19 5 12 12 5"></polyline>
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
           </svg>
-          <span class="label-caps">Exit Chat</span>
-        </a>
+          <span class="theme-btn-text">Dark Mode</span>
+        </button>
+        <button class="sidebar-action-btn" id="btn-clear-chat" style="color: hsl(0, 65%, 50%); border-top: 1px solid var(--outline-variant); padding-top: 16px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+          Clear Archive
+        </button>
       </div>
     </aside>
 
-    <!-- Main Chat Content -->
-    <main class="chat-viewport" id="chat-panel">
+    <!-- Main Chat Window Area -->
+    <main class="chat-viewport">
       
-      <!-- Top Sticky Header -->
+      <!-- Top Sticky Navigation header -->
       <header class="chat-header">
         <div class="header-left">
           <button class="header-icon-btn" id="btn-toggle-sidebar" aria-label="Toggle Sidebar">
@@ -85,121 +76,106 @@
             </svg>
           </button>
           <div class="header-model-info">
-            <span class="label-caps">MODEL</span>
+            <span class="label-caps">Active Engine</span>
             <span class="model-badge" id="current-model-badge">google/gemma-4-31b-it:free</span>
           </div>
         </div>
-        
         <div class="header-right">
-          <button class="header-text-btn" id="btn-clear-chat" aria-label="Clear Current Conversation">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          <a href="index.html" class="header-text-btn" style="text-decoration: none;">
+            Exit Workspace
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: 6px;">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
             </svg>
-            <span class="label-caps">Reset Thread</span>
-          </button>
+          </a>
         </div>
       </header>
 
-      <!-- Messages Stream Area -->
-      <div class="messages-container" id="chat-messages" role="log" aria-live="polite">
+      <!-- Scrollable Message Stream -->
+      <div class="messages-container" id="chat-messages">
         
-        <!-- Empty Welcome State -->
+        <!-- Empty State Suggestion Feed -->
         <div class="empty-state" id="empty-state">
           <div class="empty-state-content">
-            <div class="viewfinder-corner-bl" style="border-width: 0 0 2px 2px; width: 16px; height: 16px;"></div>
-            <div class="viewfinder-corner-br" style="border-width: 0 2px 2px 0; width: 16px; height: 16px;"></div>
-            <h1 class="display-lg" style="font-size: clamp(2rem, 5vw, 3rem); text-align: center; margin-bottom: 8px;">
-              ASSISTANT <span class="editorial-italic">Engine</span>
-            </h1>
-            <p class="body-md" style="text-align: center; max-width: 500px; margin-bottom: 32px; color: var(--secondary);">
-              A custom console designed for structured logic, code synthesis, and architectural research.
+            <span class="label-caps" style="color: var(--secondary); letter-spacing: 0.15em;">Conversational Interface</span>
+            <h2 style="margin-top: 12px; margin-bottom: 16px;">Editorial AI <span class="editorial-italic">Assistant</span></h2>
+            <p class="body-md" style="color: var(--on-surface-variant); font-size: 15px; margin-bottom: 32px; line-height: 1.6;">
+              Welcome to the high-performance portfolio AI model sandbox. Enter a query below to stream completion responses, compile complex data tables, or format styled algorithms in real-time.
             </p>
-            
-            <div class="suggestions-grid" role="group" aria-label="Prompt Suggestions">
-              <button class="suggestion-card" data-prompt="Synthesize a fast, zero-dependency client-side router in Vanilla JS.">
-                <div class="suggestion-icon">⚡</div>
-                <div class="suggestion-title label-caps">Creative Code</div>
-                <div class="suggestion-desc body-md">Design a clean, modern single-page client router.</div>
+
+            <span class="label-caps">Suggested Queries</span>
+            <div class="suggestions-grid">
+              <button class="suggestion-card" data-prompt="Design a responsive HTML/CSS data table representing browser performance stats.">
+                <span class="suggestion-icon">📊</span>
+                <span class="suggestion-title">Compile Data Tables</span>
+                <p class="suggestion-desc">Generates beautiful responsive tables inside the assistant response card.</p>
               </button>
-              <button class="suggestion-card" data-prompt="Analyze how transformer-based models handle long context windows. Outline optimizations like RoPE and FlashAttention.">
-                <div class="suggestion-icon">🧠</div>
-                <div class="suggestion-title label-caps">Intelligent Systems</div>
-                <div class="suggestion-desc body-md">Explain technical details of model context scales.</div>
+              <button class="suggestion-card" data-prompt="Write a Python script that scrapes headlines from news articles and list the source links like: [1](https://news.ycombinator.com), [2](https://techcrunch.com).">
+                <span class="suggestion-icon">🔗</span>
+                <span class="suggestion-title">Test Sourced Links</span>
+                <p class="suggestion-desc">Evaluates links extraction and hostname parsing for bottom references.</p>
               </button>
-              <button class="suggestion-card" data-prompt="Generate a clean REST API spec using OpenAPI 3.0 for a secure payments engine.">
-                <div class="suggestion-icon">📐</div>
-                <div class="suggestion-title label-caps">Architecture</div>
-                <div class="suggestion-desc body-md">Draft a spec for a microservices transaction flow.</div>
+              <button class="suggestion-card" data-prompt="Explain the difference between WebSockets and SSE (Server-Sent Events) in web development.">
+                <span class="suggestion-icon">📡</span>
+                <span class="suggestion-title">Explain Core Architectures</span>
+                <p class="suggestion-desc">Compares streaming backend protocols with clean typography.</p>
               </button>
-              <button class="suggestion-card" data-prompt="Review this JavaScript code block for potential memory leaks: [Paste code]">
-                <div class="suggestion-icon">🔍</div>
-                <div class="suggestion-title label-caps">Code Review</div>
-                <div class="suggestion-desc body-md">Check logic for closures and timer leaks.</div>
+              <button class="suggestion-card" data-prompt="What are the best styling practices for building minimalist-editorial websites?">
+                <span class="suggestion-icon">✒️</span>
+                <span class="suggestion-title">Editorial Style Rules</span>
+                <p class="suggestion-desc">Discusses sharp layout constraints, typography, and color ranges.</p>
               </button>
             </div>
           </div>
         </div>
 
-        <!-- Rendered Messages will load here -->
-        
       </div>
 
-      <!-- Bottom Input Drawer -->
+      <!-- Docked Bottom Composer Form -->
       <footer class="chat-footer">
-        <div class="composer-container">
-          <form class="composer-form" id="composer-form">
-            <div class="composer-inner">
-              <!-- Autogrowing Input Box -->
-              <textarea 
-                id="composer-input" 
-                rows="1" 
-                placeholder="Message Assistant Engine..." 
-                aria-label="Message Input Box"
-                required></textarea>
-              
-              <div class="composer-toolbar">
-                <div class="toolbar-left">
-                  <!-- Attachment Mock Button -->
-                  <button type="button" class="composer-icon-btn" id="btn-attach" aria-label="Attach File">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
-                    </svg>
-                  </button>
-                  <!-- Mock Web Search Toggle -->
-                  <button type="button" class="composer-icon-btn" id="btn-web-search" aria-label="Toggle Web Search">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <line x1="2" y1="12" x2="22" y2="12"></line>
-                      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-                    </svg>
-                  </button>
-                </div>
-                
-                <button type="submit" class="btn-composer-submit" id="btn-submit-message" aria-label="Send Message">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <line x1="12" y1="19" x2="12" y2="5"></line>
-                    <polyline points="5 12 12 5 19 12"></polyline>
+        <form class="composer-container" id="composer-form">
+          <div class="composer-inner">
+            <textarea id="composer-input" rows="1" placeholder="Message Assistant Engine..." aria-label="Enter prompt" required></textarea>
+            <div class="composer-toolbar">
+              <div class="toolbar-left">
+                <button type="button" class="composer-icon-btn" id="btn-attach" title="Attach design asset" aria-label="Attach file">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                  </svg>
+                </button>
+                <button type="button" class="composer-icon-btn" id="btn-web-search" title="Enable Web Search tool extension" aria-label="Toggle web search">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
                   </svg>
                 </button>
               </div>
+              <button type="submit" class="btn-composer-submit" id="btn-submit-message" title="Submit message" aria-label="Send prompt">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+              </button>
             </div>
-          </form>
-        </div>
-        <p class="chat-disclaimer metadata">
-          Assistant Engine uses OpenRouter stream completions. Verification of analytical claims is recommended.
+          </div>
+        </form>
+        <p class="chat-disclaimer">
+          Editorial AI can make mistakes. Verify critical system coordinates.
         </p>
       </footer>
+
     </main>
+
   </div>
 
-  <!-- API Credentials / Settings Modal -->
-  <div class="modal-overlay" id="settings-modal" aria-hidden="true" role="dialog" aria-labelledby="modal-title">
-    <div class="modal-content">
+  <!-- Settings Configuration Dialogue Modal Overlay -->
+  <dialog class="modal-overlay" id="settings-modal" aria-hidden="true">
+    <div class="modal-content" role="document">
       <div class="modal-header">
-        <h2 id="modal-title" class="headline-lg" style="font-size: 20px;">SYSTEM SETTINGS</h2>
-        <button class="modal-close" id="btn-close-settings" aria-label="Close Settings Panel">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <h3>System Settings</h3>
+        <button class="modal-close" id="btn-close-settings" aria-label="Close settings dialog">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
           </svg>
@@ -208,33 +184,31 @@
       
       <div class="modal-body">
         <div class="settings-group">
-          <label for="settings-api-key" class="label-caps">OpenRouter API Credentials</label>
+          <label for="settings-api-key">OpenRouter API Credentials</label>
           <div class="api-key-input-wrapper">
-            <input type="password" id="settings-api-key" placeholder="sk-or-v1-..." class="input-field" autocomplete="off">
-            <button type="button" id="btn-toggle-key-visibility" class="key-visibility-btn" aria-label="Toggle key visibility">Show</button>
+            <input type="password" id="settings-api-key" class="input-field" placeholder="Enter OpenRouter API Key sk-or-...">
+            <button type="button" class="key-visibility-btn" id="btn-toggle-key-visibility">Show</button>
           </div>
-          <p class="metadata" style="margin-top: 8px;">Your credential key is stored locally in your browser's persistent sandbox (`localStorage`).</p>
         </div>
 
         <div class="settings-group">
-          <label for="settings-model" class="label-caps">Completion Model Identifier</label>
-          <select id="settings-model" class="input-field select-field">
-            <option value="google/gemma-4-31b-it:free">google/gemma-4-31b-it:free (Active Free — Recommended)</option>
-            <option value="meta-llama/llama-3.3-70b-instruct:free">meta-llama/llama-3.3-70b-instruct:free (Free)</option>
-            <option value="liquid/lfm-2.5-1.2b-instruct:free">liquid/lfm-2.5-1.2b-instruct:free (Free)</option>
-            <option value="sourceful/riverflow-v2.5-pro:free">sourceful/riverflow-v2.5-pro:free (Inactive/Offline)</option>
+          <label for="settings-model">Completion Model Routing</label>
+          <select id="settings-model" class="select-field">
+            <option value="google/gemma-4-31b-it:free">google/gemma-4-31b-it:free (Default)</option>
+            <option value="meta-llama/llama-3-8b-instruct:free">meta-llama/llama-3-8b-instruct:free</option>
+            <option value="mistralai/mistral-7b-instruct:free">mistralai/mistral-7b-instruct:free</option>
+            <option value="qwen/qwen-2.5-72b-instruct:free">qwen/qwen-2.5-72b-instruct:free</option>
           </select>
         </div>
       </div>
 
       <div class="modal-footer">
-        <button class="btn-secondary label-caps" id="btn-reset-settings">Restore Defaults</button>
-        <button class="btn-primary label-caps" id="btn-save-settings" style="margin-top: 0;">Commit Changes</button>
+        <button type="button" class="btn-secondary" id="btn-reset-settings">Restore Default</button>
+        <button type="button" class="btn-secondary" style="background-color: var(--primary); color: var(--on-primary); border: none;" id="btn-save-settings">Commit Changes</button>
       </div>
     </div>
-  </div>
+  </dialog>
 
-  <!-- Active Scripts -->
   <script src="chat.js"></script>
 </body>
 </html>
