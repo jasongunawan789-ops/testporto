@@ -634,19 +634,29 @@ document.addEventListener('DOMContentLoaded', () => {
     // 8. Horizontal Rules
     html = html.replace(/^\s*[-*_]{3,}\s*$/gm, '<hr>');
 
-    // 9. Links [text](url)
+    // 9. Links [text](url) (Complete)
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, text, url) => {
-      // If the link text is a number or brackets containing a number (e.g. "1", "[1]"), style as a citation badge
       const cleanText = text.trim();
-      if (/^\d+$/.test(cleanText) || /^\[\d+\]$/.test(cleanText)) {
-        const num = cleanText.replace(/[\[\]]/g, '');
-        return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="citation-badge" title="${url}">${num}</a>`;
+      // If the link text is a number, format it as a normal inline bracketed link: [1]
+      if (/^\d+$/.test(cleanText)) {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer">[${cleanText}]</a>`;
+      }
+      // If it already has brackets like [1], preserve it
+      if (/^\[\d+\]$/.test(cleanText)) {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer">${cleanText}</a>`;
       }
       return `<a href="${url}" target="_blank" rel="noopener noreferrer">${text}</a>`;
     });
 
-    // 9.5 Autolink plain text URLs (e.g. https://...) that aren't already part of an HTML tag
-    html = html.replace(/(?<!["'>])\b(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+    // 9.5 Handle incomplete markdown links during streaming to prevent raw URL exposure
+    // e.g. [text](https://... (without closing parenthesis)
+    html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]*)$/g, (match, text, url) => {
+      const cleanText = text.trim();
+      if (/^\d+$/.test(cleanText)) {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer">[${cleanText}]</a>`;
+      }
+      return `<a href="${url}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+    });
 
     // 10. Strike-through ~~text~~
     html = html.replace(/~~([^~]+)~~/g, '<del>$1</del>');
