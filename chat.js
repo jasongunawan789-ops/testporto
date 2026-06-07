@@ -781,6 +781,12 @@ document.addEventListener('DOMContentLoaded', () => {
       .slice(-historyLimit)
       .map(m => ({ role: m.role, content: m.content }));
 
+    // Prepend a system prompt to enforce English language responses
+    historyMessages.unshift({
+      role: 'system',
+      content: 'You are a helpful AI assistant. You must always communicate and respond in English.'
+    });
+
     try {
       const searchActive = btnWebSearch.classList.contains('active');
       if (searchActive) {
