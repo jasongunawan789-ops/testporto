@@ -518,6 +518,72 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/'/g, '&#039;');
   }
 
+  function parseTableBlock(block) {
+    const lines = block.trim().split('\n');
+    if (lines.length < 2) return null;
+    
+    // Check if second line is a header separator: contains only |, -, :, and spaces
+    const sepLine = lines[1].trim();
+    if (!/^\|?\s*[:\-]+\s*\|[\s:\-\|]*$/.test(sepLine)) {
+      return null;
+    }
+    
+    // Parse alignment from separator line
+    const alignMatches = sepLine.split('|').map(col => {
+      const trimmed = col.trim();
+      if (!trimmed) return null;
+      const left = trimmed.startsWith(':');
+      const right = trimmed.endsWith(':');
+      if (left && right) return 'center';
+      if (right) return 'right';
+      return 'left';
+    }).filter(x => x !== null);
+    
+    let tableHtml = '<table><thead>';
+    
+    // Parse header line (lines[0])
+    const headers = lines[0].split('|').map(c => c.trim()).filter((c, i, a) => {
+      if (i === 0 && c === '') return false;
+      if (i === a.length - 1 && c === '') return false;
+      return true;
+    });
+    
+    tableHtml += '<tr>';
+    headers.forEach((h, idx) => {
+      const align = alignMatches[idx] || 'left';
+      tableHtml += `<th style="text-align: ${align}">${h}</th>`;
+    });
+    tableHtml += '</tr></thead><tbody>';
+    
+    // Parse data lines (lines[2] onwards)
+    for (let i = 2; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue; // Skip empty rows
+      
+      const cells = line.split('|').map(c => c.trim()).filter((c, idx, a) => {
+        if (idx === 0 && c === '') return false;
+        if (idx === a.length - 1 && c === '') return false;
+        return true;
+      });
+      
+      tableHtml += '<tr>';
+      cells.forEach((cell, idx) => {
+        const align = alignMatches[idx] || 'left';
+        tableHtml += `<td style="text-align: ${align}">${cell}</td>`;
+      });
+      // Fill in missing cells if row has fewer cells than headers
+      if (cells.length < headers.length) {
+        for (let k = cells.length; k < headers.length; k++) {
+          const align = alignMatches[k] || 'left';
+          tableHtml += `<td style="text-align: ${align}"></td>`;
+        }
+      }
+      tableHtml += '</tr>';
+    }
+    tableHtml += '</tbody></table>';
+    return tableHtml;
+  }
+
   function renderMarkdown(md) {
     if (!md) return '';
 
@@ -560,8 +626,21 @@ document.addEventListener('DOMContentLoaded', () => {
     // 6. Blockquotes
     html = html.replace(/^\s*&gt;\s+(.+)$/gm, '<blockquote>$1</blockquote>');
 
-    // 7. Unordered lists (- item or * item)
-    // Wrap consecutive bullet lines in <ul>
+    // 7. Parse Headings (from H3 to H1)
+    html = html.replace(/^\s*###\s+(.+)$/gm, '<h3>$1</h3>');
+    html = html.replace(/^\s*##\s+(.+)$/gm, '<h2>$1</h2>');
+    html = html.replace(/^\s*#\s+(.+)$/gm, '<h1>$1</h1>');
+
+    // 8. Horizontal Rules
+    html = html.replace(/^\s*[-*_]{3,}\s*$/gm, '<hr>');
+
+    // 9. Links [text](url)
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+
+    // 10. Strike-through ~~text~~
+    html = html.replace(/~~([^~]+)~~/g, '<del>$1</del>');
+
+    // 11. Unordered lists (- item or * item)
     html = html.replace(/(?:^\s*(?:-|\*)\s+(.+)\n?)+/gm, (match) => {
       const items = match.trim().split('\n').map(line => {
         const itemContent = line.replace(/^\s*(?:-|\*)\s+/, '');
@@ -570,7 +649,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return `<ul>${items}</ul>`;
     });
 
-    // 8. Ordered lists (1. item)
+    // 12. Ordered lists (1. item)
     html = html.replace(/(?:^\s*\d+\.\s+(.+)\n?)+/gm, (match) => {
       const items = match.trim().split('\n').map(line => {
         const itemContent = line.replace(/^\s*\d+\.\s+/, '');
@@ -579,23 +658,34 @@ document.addEventListener('DOMContentLoaded', () => {
       return `<ol>${items}</ol>`;
     });
 
-    // 9. Process Paragraphs (split by double newlines, wrap in <p>)
+    // 13. Process Paragraphs (split by double newlines, wrap in <p>)
     const blocks = html.split(/\n\n+/);
     html = blocks.map(block => {
       const trimmed = block.trim();
       if (!trimmed) return '';
       
-      // If it contains a code block placeholder or list tags, don't wrap in <p>
+      // If it contains a code block placeholder or block tags, don't wrap in <p>
       if (trimmed.startsWith('__CODE_BLOCK_PLACEHOLDER_') || 
           trimmed.startsWith('<ul>') || 
           trimmed.startsWith('<ol>') || 
-          trimmed.startsWith('<blockquote>')) {
+          trimmed.startsWith('<blockquote>') ||
+          trimmed.startsWith('<h1>') ||
+          trimmed.startsWith('<h2>') ||
+          trimmed.startsWith('<h3>') ||
+          trimmed.startsWith('<hr>')) {
         return trimmed;
       }
+      
+      // Check for table block
+      const tableHtml = parseTableBlock(trimmed);
+      if (tableHtml) {
+        return tableHtml;
+      }
+      
       return `<p>${trimmed.replace(/\n/g, '<br>')}</p>`;
     }).join('');
 
-    // 10. Restore code blocks
+    // 14. Restore code blocks
     codeBlocks.forEach((blockHtml, index) => {
       html = html.replace(`__CODE_BLOCK_PLACEHOLDER_${index}__`, blockHtml);
     });
