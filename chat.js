@@ -635,7 +635,18 @@ document.addEventListener('DOMContentLoaded', () => {
     html = html.replace(/^\s*[-*_]{3,}\s*$/gm, '<hr>');
 
     // 9. Links [text](url)
-    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, text, url) => {
+      // If the link text is a number or brackets containing a number (e.g. "1", "[1]"), style as a citation badge
+      const cleanText = text.trim();
+      if (/^\d+$/.test(cleanText) || /^\[\d+\]$/.test(cleanText)) {
+        const num = cleanText.replace(/[\[\]]/g, '');
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="citation-badge" title="${url}">${num}</a>`;
+      }
+      return `<a href="${url}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+    });
+
+    // 9.5 Autolink plain text URLs (e.g. https://...) that aren't already part of an HTML tag
+    html = html.replace(/(?<!["'>])\b(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
 
     // 10. Strike-through ~~text~~
     html = html.replace(/~~([^~]+)~~/g, '<del>$1</del>');
