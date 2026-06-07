@@ -24,8 +24,44 @@ document.addEventListener('DOMContentLoaded', () => {
     threads: JSON.parse(localStorage.getItem('chat_history_threads') || '[]'),
     activeThreadId: null,
     isGenerating: false,
-    currentReader: null // Keep reference to abort stream if needed
+    currentReader: null, // Keep reference to abort stream if needed
+    useBackend: false // Proxy toggle for FastAPI server proxy vs direct browser mode
   };
+
+  async function checkBackend() {
+    try {
+      const response = await fetch('/api/config');
+      if (response.ok) {
+        const config = await response.json();
+        state.useBackend = true;
+        state.model = config.model;
+        currentModelBadge.textContent = config.model;
+        
+        // Show status update on settings navigation
+        const sidebarSettingsBtn = document.getElementById('btn-settings');
+        if (sidebarSettingsBtn) {
+          sidebarSettingsBtn.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+              <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+              <line x1="6" y1="6" x2="6.01" y2="6"></line>
+              <line x1="6" y1="18" x2="6.01" y2="18"></line>
+            </svg>
+            <span class="label-caps">Server Active</span>
+          `;
+        }
+        
+        // Clear direct browser warnings if API is proxied
+        const warningMsg = document.getElementById('key-required-msg');
+        if (warningMsg) warningMsg.remove();
+      }
+    } catch (e) {
+      state.useBackend = false;
+    }
+  }
+
+  // Check server status
+  checkBackend();
 
   // --- UI ELEMENTS ---
   const sidebar = document.getElementById('sidebar');
@@ -641,20 +677,33 @@ document.addEventListener('DOMContentLoaded', () => {
         lastMsg.content = `[Web Search Context: Simulated active search queries completed.]\n\n${lastMsg.content}`;
       }
 
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${state.apiKey}`,
-          'HTTP-Referer': window.location.origin,
-          'X-Title': 'Jason Gunawan Portfolio AI Engine'
-        },
-        body: JSON.stringify({
-          model: state.model,
-          messages: historyMessages,
-          stream: true
-        })
-      });
+      let response;
+      if (state.useBackend) {
+        response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            messages: historyMessages
+          })
+        });
+      } else {
+        response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${state.apiKey}`,
+            'HTTP-Referer': window.location.origin,
+            'X-Title': 'Jason Gunawan Portfolio AI Engine'
+          },
+          body: JSON.stringify({
+            model: state.model,
+            messages: historyMessages,
+            stream: true
+          })
+        });
+      }
 
       if (!response.ok) {
         const errJson = await response.json().catch(() => ({}));
