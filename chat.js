@@ -77,7 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnNewChat = document.getElementById('btn-new-chat');
   const chatHistoryList = document.getElementById('chat-history-list');
   const btnSettings = document.getElementById('btn-settings');
-  const btnQuickSettings = document.getElementById('btn-quick-settings');
   const btnThemeToggle = document.getElementById('btn-theme-toggle');
   const themeBtnText = btnThemeToggle.querySelector('.theme-btn-text');
   
@@ -200,7 +199,6 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   btnSettings.addEventListener('click', openSettings);
-  btnQuickSettings.addEventListener('click', openSettings);
 
   const closeSettings = () => {
     settingsModal.classList.remove('active');
