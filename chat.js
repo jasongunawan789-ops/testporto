@@ -33,27 +33,34 @@ document.addEventListener('DOMContentLoaded', () => {
       const response = await fetch('/api/config');
       if (response.ok) {
         const config = await response.json();
-        state.useBackend = true;
-        state.model = config.model;
-        currentModelBadge.textContent = config.model;
         
-        // Show status update on settings navigation
-        const sidebarSettingsBtn = document.getElementById('btn-settings');
-        if (sidebarSettingsBtn) {
-          sidebarSettingsBtn.innerHTML = `
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
-              <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
-              <line x1="6" y1="6" x2="6.01" y2="6"></line>
-              <line x1="6" y1="18" x2="6.01" y2="18"></line>
-            </svg>
-            <span class="label-caps">Server Active</span>
-          `;
+        // Only use the backend server proxy if it has the API key pre-configured
+        if (config.has_api_key) {
+          state.useBackend = true;
+          state.model = config.model;
+          currentModelBadge.textContent = config.model;
+          
+          // Show status update on settings navigation
+          const sidebarSettingsBtn = document.getElementById('btn-settings');
+          if (sidebarSettingsBtn) {
+            sidebarSettingsBtn.innerHTML = `
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                <line x1="6" y1="18" x2="6.01" y2="18"></line>
+              </svg>
+              <span class="label-caps">Server Active</span>
+            `;
+          }
+          
+          // Clear direct browser warnings if API is proxied
+          const warningMsg = document.getElementById('key-required-msg');
+          if (warningMsg) warningMsg.remove();
+        } else {
+          // If server lacks the key, fall back to browser-direct mode
+          state.useBackend = false;
         }
-        
-        // Clear direct browser warnings if API is proxied
-        const warningMsg = document.getElementById('key-required-msg');
-        if (warningMsg) warningMsg.remove();
       }
     } catch (e) {
       state.useBackend = false;
