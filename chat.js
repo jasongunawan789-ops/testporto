@@ -6,7 +6,7 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   const DEFAULT_KEY = ''; // Kept empty for security to prevent committing keys to git
-  const DEFAULT_MODEL = 'google/gemma-4-31b-it:free';
+  const DEFAULT_MODEL = 'nvidia/nemotron-3.5-content-safety:free';
 
   // State Management
   let state = {

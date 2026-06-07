@@ -10,7 +10,7 @@ class Settings:
     Provides fallback defaults for local development.
     """
     OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "")
-    OPENROUTER_MODEL: str = os.getenv("OPENROUTER_MODEL", "google/gemma-4-31b-it:free")
+    OPENROUTER_MODEL: str = os.getenv("OPENROUTER_MODEL", "nvidia/nemotron-3.5-content-safety:free")
     
     # Development and production CORS policies
     CORS_ORIGINS: list[str] = [
