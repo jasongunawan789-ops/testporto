@@ -983,3 +983,74 @@
   color: var(--secondary);
   text-decoration: line-through;
 }
+
+/* Citations and Sources Directory styling */
+.message-sources-wrapper {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--outline-variant);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: messageEnter 0.2s ease-out;
+}
+
+.sources-title {
+  font-family: 'Hanken Grotesk', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--secondary);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sources-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.source-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background-color: var(--surface-container-low);
+  border: 1px solid var(--outline-variant);
+  font-size: 12px;
+  color: var(--on-surface-variant);
+  text-decoration: none;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 600;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.source-item:hover {
+  background-color: var(--surface-container-high);
+  border-color: var(--outline);
+  color: var(--on-surface);
+}
+
+.source-num {
+  font-weight: 700;
+  color: var(--primary);
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.source-text {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.source-arrow-icon {
+  color: var(--secondary);
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.source-item:hover .source-arrow-icon {
+  color: var(--primary);
+  transform: translate(1px, -1px);
+}
+

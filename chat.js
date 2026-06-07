@@ -611,6 +611,77 @@ document.addEventListener('DOMContentLoaded', () => {
       return `__CODE_BLOCK_PLACEHOLDER_${index}__`;
     });
 
+    // 1.5 Extract sources/citations (excluding code blocks)
+    const sources = [];
+    const seenUrls = new Set();
+    
+    // Scan for complete links [text](url)
+    const completeLinkRegex = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g;
+    let linkMatch;
+    completeLinkRegex.lastIndex = 0;
+    while ((linkMatch = completeLinkRegex.exec(html)) !== null) {
+      const text = linkMatch[1].trim();
+      const url = linkMatch[2].trim();
+      if (url && !seenUrls.has(url)) {
+        seenUrls.add(url);
+        sources.push({ text, url });
+      }
+    }
+    
+    // Scan for streaming incomplete links [text](url
+    const incompleteLinkRegex = /\[([^\]]+)\]\((https?:\/\/[^)\s]*)$/g;
+    let incMatch;
+    incompleteLinkRegex.lastIndex = 0;
+    while ((incMatch = incompleteLinkRegex.exec(html)) !== null) {
+      const text = incMatch[1].trim();
+      const url = incMatch[2].trim();
+      if (url && !seenUrls.has(url)) {
+        seenUrls.add(url);
+        sources.push({ text, url });
+      }
+    }
+
+    // Build Sources Section HTML
+    let sourcesHtml = '';
+    if (sources.length > 0) {
+      sourcesHtml = `
+        <div class="message-sources-wrapper">
+          <div class="sources-title label-caps">Sources</div>
+          <div class="sources-list">
+      `;
+      
+      sources.forEach((source, index) => {
+        let displayTitle = source.text;
+        const cleanTitle = displayTitle.replace(/[\[\]]/g, '').trim();
+        const isNumerical = /^\d+$/.test(cleanTitle);
+        
+        if (isNumerical) {
+          try {
+            const parsedUrl = new URL(source.url);
+            displayTitle = parsedUrl.hostname.replace(/^www\./, '');
+          } catch (e) {
+            displayTitle = 'Source';
+          }
+        }
+        
+        sourcesHtml += `
+          <a href="${escapeHTML(source.url)}" target="_blank" rel="noopener noreferrer" class="source-item">
+            <span class="source-num">[${index + 1}]</span>
+            <span class="source-text">${escapeHTML(displayTitle)}</span>
+            <svg class="source-arrow-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="7" y1="17" x2="17" y2="7"></line>
+              <polyline points="7 7 17 7 17 17"></polyline>
+            </svg>
+          </a>
+        `;
+      });
+      
+      sourcesHtml += `
+          </div>
+        </div>
+      `;
+    }
+
     // 2. Escape other general HTML before rendering markdown formatting
     html = escapeHTML(html);
 
@@ -711,7 +782,7 @@ document.addEventListener('DOMContentLoaded', () => {
       html = html.replace(`__CODE_BLOCK_PLACEHOLDER_${index}__`, blockHtml);
     });
 
-    return html;
+    return html + sourcesHtml;
   }
 
   // --- API CONNECTION (SSE STREAMING) ---
