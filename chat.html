@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Editorial AI Assistant — Chat Engine</title>
   <meta name="description" content="A premium conversational chat interface featuring LLM streaming, markdown rendering, and persistent threads history.">
+  <link rel="icon" type="image/png" href="assets/images/project-2.png">
   <link rel="stylesheet" href="chat.css">
 </head>
 <body class="chat-body">
@@ -135,7 +136,10 @@
       <footer class="chat-footer">
         <form class="composer-container" id="composer-form">
           <div class="composer-inner">
-            <textarea id="composer-input" rows="1" placeholder="Message Assistant Engine..." aria-label="Enter prompt" required></textarea>
+            <div class="composer-input-wrapper">
+              <img src="assets/images/project-2.png" alt="Editorial AI Favicon" class="composer-fav-icon">
+              <textarea id="composer-input" rows="1" placeholder="Message Assistant Engine..." aria-label="Enter prompt" required></textarea>
+            </div>
             <div class="composer-toolbar">
               <div class="toolbar-left">
                 <button type="button" class="composer-icon-btn" id="btn-attach" title="Attach design asset" aria-label="Attach file">
